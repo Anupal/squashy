@@ -1,0 +1,19 @@
+# build outputs
+bin/
+obj/
+out/
+publish/
+
+# VSCode stuff
+.vs/
+.vscode/
+.idea/
+
+# Dotnet tools and artifacts
+*.nupkg
+packages/
+.nuget/
+*.dll
+*.exe
+*.pdb
+*.app
