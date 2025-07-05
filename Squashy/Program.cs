@@ -4,6 +4,7 @@ class Program
 {
     static int Main(string[] args)
     {
+        GitCommands git = new();
         RootCommand rootCmd = new("Squashy: Simple commandline git squasher");
 
         Command listCommitsCmd = new("list", "List last N commits");
@@ -21,7 +22,7 @@ class Program
         listCommitsCmd.Add(numCommitOptions);
         listCommitsCmd.SetAction(parseResult =>
         {
-            GitCommands.DisplayCommits(parseResult.GetValue(directoryOption), parseResult.GetValue(numCommitOptions));
+            git.DisplayCommits(parseResult.GetValue(directoryOption), parseResult.GetValue(numCommitOptions));
             return 0;
         });
 
