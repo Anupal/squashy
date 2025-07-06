@@ -6,4 +6,4 @@ build:
 gentest:
 	bash setup-test-repo.sh
 run:
-	./publish/Squashy list -d ./test-repo -n 10
+	./publish/Squashy log -d ./test-repo -n 10

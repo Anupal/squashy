@@ -7,7 +7,7 @@ class Program
         GitCommands git = new();
         RootCommand rootCmd = new("Squashy: Simple commandline git squasher");
 
-        Command listCommitsCmd = new("list", "List last N commits");
+        Command logCommitsCmd = new("log", "List last N commits");
         Option<string> directoryOption = new("-d")
         {
             Description = "Git directory",
@@ -18,15 +18,15 @@ class Program
             Description = "Number of commits",
             DefaultValueFactory = parseResult => 10,
         };
-        listCommitsCmd.Add(directoryOption);
-        listCommitsCmd.Add(numCommitOptions);
-        listCommitsCmd.SetAction(parseResult =>
+        logCommitsCmd.Add(directoryOption);
+        logCommitsCmd.Add(numCommitOptions);
+        logCommitsCmd.SetAction(parseResult =>
         {
-            git.DisplayCommits(parseResult.GetValue(directoryOption), parseResult.GetValue(numCommitOptions));
+            git.Log(parseResult.GetValue(directoryOption), parseResult.GetValue(numCommitOptions));
             return 0;
         });
 
-        rootCmd.Add(listCommitsCmd);
+        rootCmd.Add(logCommitsCmd);
 
         ParseResult parseResult = rootCmd.Parse(args);
         return parseResult.Invoke();

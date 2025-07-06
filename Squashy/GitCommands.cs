@@ -2,7 +2,7 @@ using LibGit2Sharp;
 
 public class GitCommands
 {
-    public void DisplayCommits(string directory, int numCommits)
+    public void Log(string directory, int numCommits)
     {
         using var repo = new Repository(directory);
         var filter = new CommitFilter { SortBy = CommitSortStrategies.Topological | CommitSortStrategies.Reverse };
