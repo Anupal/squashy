@@ -17,3 +17,5 @@ packages/
 *.exe
 *.pdb
 *.app
+
+test-repo
