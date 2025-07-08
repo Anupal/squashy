@@ -2,13 +2,34 @@ using LibGit2Sharp;
 
 public class GitCommands
 {
-    public void Log(string directory, int numCommits)
+    private string directory;
+    private Repository repo;
+    
+
+    public GitCommands(string directory)
     {
-        using var repo = new Repository(directory);
-        var filter = new CommitFilter { SortBy = CommitSortStrategies.Topological | CommitSortStrategies.Reverse };
-        printCommitsTable(repo.Commits.QueryBy(filter).Take(numCommits), true);
+        Console.WriteLine($"Loading repo from: {directory}");
+        this.directory = directory;
+        this.repo = new Repository(directory);
     }
     
+    public void Log(int numCommits)
+    {
+        printCommitsTable(getCommits(numCommits), true);
+    }
+
+    public IEnumerable<Commit> getCommits()
+    {
+        var filter = new CommitFilter { SortBy = CommitSortStrategies.Topological | CommitSortStrategies.Reverse };
+        return repo.Commits.QueryBy(filter);
+    }
+
+    public IEnumerable<Commit> getCommits(int numCommits)
+    {
+        var filter = new CommitFilter { SortBy = CommitSortStrategies.Topological | CommitSortStrategies.Reverse };
+        return repo.Commits.QueryBy(filter).Take(numCommits);
+    }
+
     private void printCommitsTable(IEnumerable<Commit> commitList, bool displayHeader = false)
     {
         if (displayHeader)
@@ -16,7 +37,7 @@ public class GitCommands
             Console.WriteLine("{0,-7} {1,-20} {2,-50}", "Hash", "Author", "Message");
             Console.WriteLine(new string('-', 40));
         }
-        
+
         foreach (Commit commit in commitList)
         {
             string shortHash = commit.Sha.Substring(0, 7);
