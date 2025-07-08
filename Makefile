@@ -6,4 +6,9 @@ build:
 gentest:
 	bash setup-test-repo.sh
 run:
-	./publish/Squashy list -d ./test-repo -n 10
+	./publish/Squashy -d ./test-repo log -n 10
+clean:
+	dotnet clean -c Release
+	rm -rf publish
+	rm -rf ./Squashy/bin
+	rm -rf ./Squashy/obj
