@@ -18,7 +18,7 @@ public class GitCommands
         printCommitsTable(getCommits(numCommits), true);
     }
 
-    public void Squash(string firstCommitSha, string secondCommitSha, bool dryRun)
+    public void Squash(string firstCommitSha, string secondCommitSha, bool dryRun, string message)
     {
         using var repo = new Repository(directory);
         var firstCommit = fetchCommitBySha(repo, firstCommitSha);
@@ -26,10 +26,15 @@ public class GitCommands
 
         if (firstCommit == null || secondCommit == null) { return; }
 
+        // swap to ensure firstCommit always comes before secondCommit
+        if (!isAncestor(repo, firstCommit, secondCommit))
+        {
+            (firstCommit, secondCommit) = (secondCommit, firstCommit);
+        }
 
         if (dryRun)
         {
-            squashDryRun(getCommits(), firstCommitSha, secondCommitSha);
+            squashDryRun(repo, firstCommit, secondCommit, message);
         }
     }
 
@@ -65,10 +70,12 @@ public class GitCommands
             Console.WriteLine("{0,-7} {1,-20} {2,-50}", shortHash, author, message);
         }
     }
-    
+
     /// <summary>
-    ///  Checks if the commit exists for the given SHA and is present in the current branch.
+    /// Checks if the commit exists for the given SHA and is present in the current branch.
     /// </summary>
+    /// <param name="repo"></param>
+    /// <param name="commitSha"></param>
     /// <returns>The retrieved <c>Commit</c> object or <c>null</c> if not found or not present in the current branch.</returns>
     private Commit fetchCommitBySha(Repository repo, string commitSha)
     {
@@ -97,8 +104,62 @@ public class GitCommands
         return commit;
     }
 
-    private void squashDryRun(IEnumerable<Commit> commits, string firstCommitSha, string secondCommitSha)
+    /// <summary>
+    /// Dry run for squashing commits in the given range (inclusive).
+    /// </summary>
+    /// <param name="repo"></param>
+    /// <param name="firstCommit"></param>
+    /// <param name="secondCommit"></param>
+    /// <param name="message"></param>
+    private void squashDryRun(Repository repo, Commit firstCommit, Commit secondCommit, string message)
     {
+        // if secondCommit is not the head, we need to print commits that come after it
+        if (!isHeadCommit(repo, secondCommit))
+        {
+            var commitsAfterSecond = repo.Commits.QueryBy(
+                new CommitFilter
+                {
+                    IncludeReachableFrom = repo.Head,
+                    ExcludeReachableFrom = secondCommit,
+                    SortBy = CommitSortStrategies.Topological
+                }
+            ).SkipWhile(commit => commit.Sha == secondCommit.Sha);
 
+            printCommitsTable(commitsAfterSecond);
+        }
+        Console.WriteLine($"<squashed commit> '{message}'");
+
+        // get all commits before the firstCommit
+        var commitsBeforeFirst = repo.Commits.QueryBy(
+            new CommitFilter
+            {
+                IncludeReachableFrom = firstCommit,
+                SortBy = CommitSortStrategies.Topological
+            }
+        ).SkipWhile(commit => commit.Sha == firstCommit.Sha);
+        printCommitsTable(commitsBeforeFirst);
+    }
+
+    /// <summary>
+    /// Checks if commit is the head of current branch.
+    /// </summary>
+    /// <param name="repo"></param>
+    /// <param name="commit"></param>
+    /// <returns>Returns <c>true</c> if commit is the head of current branch.</returns>
+    private bool isHeadCommit(Repository repo, Commit commit)
+    {
+        return repo.Head.Tip.Sha == commit.Sha;
+    }
+
+    /// <summary>
+    /// Checks if firstCommit comes before secondCommit in the tree.
+    /// </summary>
+    /// <param name="repo"></param>
+    /// <param name="firstCommit"></param>
+    /// <param name="secondCommit"></param>
+    /// <returns>Returns <c>true</c> if firstCommit is the ancestor of secondCommit.</returns>
+    bool isAncestor(Repository repo, Commit firstCommit, Commit secondCommit)
+    {
+        return repo.ObjectDatabase.FindMergeBase(firstCommit, secondCommit)?.Sha == firstCommit.Sha;
     }
 }
