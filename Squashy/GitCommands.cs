@@ -36,6 +36,10 @@ public class GitCommands
         {
             squashDryRun(repo, firstCommit, secondCommit, message);
         }
+        else
+        {
+            squashExec(repo, firstCommit, secondCommit, message);
+        }
     }
 
     private IEnumerable<Commit> getCommits()
@@ -140,6 +144,47 @@ public class GitCommands
         printCommitsTable(commitsBeforeFirst);
     }
 
+    private void squashExec(Repository repo, Commit firstCommit, Commit secondCommit, string message)
+    {
+        var userSignature = getAuthorFromGlobalConfig(repo);
+        // if secondCommit is the head
+        // 1. reset to the commit before firstCommit
+        // 2. commit all the changes together
+        // 3. set the new commit as HEAD
+        if (isHeadCommit(repo, secondCommit))
+        {
+            var previousCommit = firstCommit.Parents.FirstOrDefault();
+            if (previousCommit == null)
+            {
+                // if entire history needs to be squashed, stash all changes in the history
+                // commit to an empty tree
+                // set HEAD to the new commit
+                var currentBranch = repo.Branches.FirstOrDefault(b => b.IsCurrentRepositoryHead);
+                Commands.Stage(repo, "*");
+                var commit = repo.ObjectDatabase.CreateCommit(
+                    userSignature,
+                    userSignature,
+                    message,
+                    repo.ObjectDatabase.CreateTree(repo.Index),
+                    parents: Enumerable.Empty<Commit>(),
+                    prettifyMessage: false
+                );
+                repo.Refs.UpdateTarget(currentBranch.Reference, commit.Id);
+                repo.Refs.UpdateTarget("HEAD", currentBranch.CanonicalName);
+            }
+            else
+            {
+                repo.Reset(ResetMode.Soft, previousCommit);
+                repo.Commit(message, userSignature, userSignature);
+            }
+        }
+        // if secondCommit is not the head
+        else
+        {
+
+        }
+    }
+
     /// <summary>
     /// Checks if commit is the head of current branch.
     /// </summary>
@@ -161,5 +206,27 @@ public class GitCommands
     bool isAncestor(Repository repo, Commit firstCommit, Commit secondCommit)
     {
         return repo.ObjectDatabase.FindMergeBase(firstCommit, secondCommit)?.Sha == firstCommit.Sha;
+    }
+
+    /// <summary>
+    /// Get user details for commit author metadata.
+    /// </summary>
+    /// <param name="repo"></param>
+    /// <returns><c>Signature</c> object with user details.</returns>
+    /// <exception cref="InvalidOperationException"></exception>
+    private Signature getAuthorFromGlobalConfig(Repository repo)
+    {
+        // Load global or repo config
+        var config = repo.Config;
+
+        string name = config.Get<string>("user.name")?.Value;
+        string email = config.Get<string>("user.email")?.Value;
+
+        if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(email))
+        {
+            throw new InvalidOperationException("Global Git user.name or user.email is not configured.");
+        }
+
+        return new Signature(name, email, DateTimeOffset.Now);
     }
 }
