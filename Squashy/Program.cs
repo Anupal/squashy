@@ -28,7 +28,7 @@ class Program
 
         Command squashCommitsCmd = new(
             "squash",
-            "Squash all commits between the specified start and end commits (inclusive)."
+            "Squash all commits between the specified first and second commits (inclusive)."
         );
         var firstCommitArg = new Argument<string>("firstCommit")
         {
@@ -38,6 +38,10 @@ class Program
         {
             Description = "The SHA of the second (newer) commit."
         };
+        var messageArg = new Argument<string>("message")
+        {
+            Description = "Message for the squashed commit."
+        };
         Option<bool> dryRunOption = new("--dry-run", "-x")
         {
             Description = "To show expected output.",
@@ -45,6 +49,7 @@ class Program
         };
         squashCommitsCmd.Add(firstCommitArg);
         squashCommitsCmd.Add(secondCommitArg);
+        squashCommitsCmd.Add(messageArg);
         squashCommitsCmd.Add(dryRunOption);
         squashCommitsCmd.SetAction(parseResult =>
         {
@@ -52,7 +57,9 @@ class Program
             git.Squash(
                 parseResult.GetValue(firstCommitArg),
                 parseResult.GetValue(secondCommitArg),
-                parseResult.GetValue(dryRunOption));
+                parseResult.GetValue(dryRunOption),
+                parseResult.GetValue(messageArg)
+            );
             return 0;
         });
 
