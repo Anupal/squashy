@@ -35,13 +35,13 @@ public class GitCommands
 
     private IEnumerable<Commit> getCommits()
     {
-        var filter = new CommitFilter { SortBy = CommitSortStrategies.Topological | CommitSortStrategies.Reverse };
+        var filter = new CommitFilter { SortBy = CommitSortStrategies.Topological };
         return repo.Commits.QueryBy(filter);
     }
 
     private IEnumerable<Commit> getCommits(int numCommits)
     {
-        var filter = new CommitFilter { SortBy = CommitSortStrategies.Topological | CommitSortStrategies.Reverse };
+        var filter = new CommitFilter { SortBy = CommitSortStrategies.Topological };
         return repo.Commits.QueryBy(filter).Take(numCommits);
     }
 
