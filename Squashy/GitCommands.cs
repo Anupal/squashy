@@ -157,25 +157,11 @@ public class GitCommands
             var previousCommit = firstCommit.Parents.FirstOrDefault();
             if (previousCommit == null)
             {
-                // if entire history needs to be squashed, stash all changes in the history
-                // commit to an empty tree
-                // set HEAD to the new commit
-                Commands.Stage(repo, "*");
-                var commit = repo.ObjectDatabase.CreateCommit(
-                    userSignature,
-                    userSignature,
-                    message,
-                    repo.ObjectDatabase.CreateTree(repo.Index),
-                    parents: Enumerable.Empty<Commit>(),
-                    prettifyMessage: false
-                );
-                repo.Refs.UpdateTarget(currentBranch.Reference, commit.Id);
-                repo.Refs.UpdateTarget("HEAD", currentBranch.CanonicalName);
+                squashAllCommitsIncludingRoot(currentBranch, userSignature, message);
             }
             else
             {
-                repo.Reset(ResetMode.Soft, previousCommit);
-                repo.Commit(message, userSignature, userSignature);
+                squashAllCommits(previousCommit, userSignature, message);
             }
         }
         // if secondCommit is not the head
@@ -197,31 +183,15 @@ public class GitCommands
 
             if (previousCommit == null)
             {
-                Commands.Stage(repo, "*");
-                var commit = repo.ObjectDatabase.CreateCommit(
-                    userSignature,
-                    userSignature,
-                    message,
-                    repo.ObjectDatabase.CreateTree(repo.Index),
-                    parents: Enumerable.Empty<Commit>(),
-                    prettifyMessage: false
-                );
-                repo.Refs.UpdateTarget(currentBranch.Reference, commit.Id);
-                repo.Refs.UpdateTarget("HEAD", currentBranch.CanonicalName);
+                squashAllCommitsIncludingRoot(currentBranch, userSignature, message);
             }
             else
             {
-                // reset to before firstCommit
-                repo.Reset(ResetMode.Soft, previousCommit);
-                // commit squashed changes
-                repo.Commit(message, userSignature, userSignature);
+                squashAllCommits(previousCommit, userSignature, message);
             }
 
             // cherry pick all commits after secondCommit
-            foreach (Commit commit in commitsAfterSecond)
-            {
-                repo.CherryPick(commit, commit.Author);
-            }
+            cherryPickListOfCommits(commitsAfterSecond);
         }
     }
 
@@ -268,5 +238,46 @@ public class GitCommands
         }
 
         return new Signature(name, email, DateTimeOffset.Now);
+    }
+
+    /// <summary>
+    /// If entire commit history after a particular commit needs to be squashed.
+    /// This is do a soft rest and then commit all the changes.
+    /// </summary>
+    private void squashAllCommits(Commit commit, Signature userSignature, string message)
+    {
+        repo.Reset(ResetMode.Soft, commit);
+        repo.Commit(message, userSignature, userSignature);
+    }
+
+
+    /// <summary>
+    /// If entire commit history needs to be squashed including root.
+    /// This will stash all changes in the history and commit to an empty tree and then set HEAD to the new root commit.
+    /// </summary>
+    /// <param name="currentBranch"></param>
+    /// <param name="userSignature"></param>
+    /// <param name="message"></param>
+    private void squashAllCommitsIncludingRoot(Branch currentBranch, Signature userSignature, string message)
+    {
+        Commands.Stage(repo, "*");
+        var commit = repo.ObjectDatabase.CreateCommit(
+            userSignature,
+            userSignature,
+            message,
+            repo.ObjectDatabase.CreateTree(repo.Index),
+            parents: Enumerable.Empty<Commit>(),
+            prettifyMessage: false
+        );
+        repo.Refs.UpdateTarget(currentBranch.Reference, commit.Id);
+        repo.Refs.UpdateTarget("HEAD", currentBranch.CanonicalName);
+    }
+
+    private void cherryPickListOfCommits(IEnumerable<Commit> commitList)
+    {
+        foreach (Commit commit in commitList)
+        {
+            repo.CherryPick(commit, commit.Author);
+        }
     }
 }
