@@ -147,6 +147,7 @@ public class GitCommands
     private void squashExec(Repository repo, Commit firstCommit, Commit secondCommit, string message)
     {
         var userSignature = getAuthorFromGlobalConfig(repo);
+        var currentBranch = repo.Branches.FirstOrDefault(b => b.IsCurrentRepositoryHead);
         // if secondCommit is the head
         // 1. reset to the commit before firstCommit
         // 2. commit all the changes together
@@ -159,7 +160,6 @@ public class GitCommands
                 // if entire history needs to be squashed, stash all changes in the history
                 // commit to an empty tree
                 // set HEAD to the new commit
-                var currentBranch = repo.Branches.FirstOrDefault(b => b.IsCurrentRepositoryHead);
                 Commands.Stage(repo, "*");
                 var commit = repo.ObjectDatabase.CreateCommit(
                     userSignature,
@@ -181,7 +181,47 @@ public class GitCommands
         // if secondCommit is not the head
         else
         {
+            var previousCommit = firstCommit.Parents.FirstOrDefault();
 
+            var commitsAfterSecond = repo.Commits.QueryBy(
+                    new CommitFilter
+                    {
+                        IncludeReachableFrom = repo.Head,
+                        ExcludeReachableFrom = secondCommit,
+                        SortBy = CommitSortStrategies.Topological
+                    }
+            ).SkipWhile(commit => commit.Sha == secondCommit.Sha);
+
+            // reset to secondCommit and discard all the changes
+            repo.Reset(ResetMode.Hard, secondCommit);
+
+            if (previousCommit == null)
+            {
+                Commands.Stage(repo, "*");
+                var commit = repo.ObjectDatabase.CreateCommit(
+                    userSignature,
+                    userSignature,
+                    message,
+                    repo.ObjectDatabase.CreateTree(repo.Index),
+                    parents: Enumerable.Empty<Commit>(),
+                    prettifyMessage: false
+                );
+                repo.Refs.UpdateTarget(currentBranch.Reference, commit.Id);
+                repo.Refs.UpdateTarget("HEAD", currentBranch.CanonicalName);
+            }
+            else
+            {
+                // reset to before firstCommit
+                repo.Reset(ResetMode.Soft, previousCommit);
+                // commit squashed changes
+                repo.Commit(message, userSignature, userSignature);
+            }
+
+            // cherry pick all commits after secondCommit
+            foreach (Commit commit in commitsAfterSecond)
+            {
+                repo.CherryPick(commit, commit.Author);
+            }
         }
     }
 
