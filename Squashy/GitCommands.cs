@@ -120,16 +120,7 @@ public class GitCommands
         // if secondCommit is not the head, we need to print commits that come after it
         if (!isHeadCommit(repo, secondCommit))
         {
-            var commitsAfterSecond = repo.Commits.QueryBy(
-                new CommitFilter
-                {
-                    IncludeReachableFrom = repo.Head,
-                    ExcludeReachableFrom = secondCommit,
-                    SortBy = CommitSortStrategies.Topological
-                }
-            ).SkipWhile(commit => commit.Sha == secondCommit.Sha);
-
-            printCommitsTable(commitsAfterSecond);
+            printCommitsTable(getDescendentsOfCommit(secondCommit));
         }
         Console.WriteLine($"<squashed commit> '{message}'");
 
@@ -144,55 +135,40 @@ public class GitCommands
         printCommitsTable(commitsBeforeFirst);
     }
 
+    /// <summary>
+    /// Squash commits in the given range (inclusive).
+    /// </summary>
+    /// <param name="repo"></param>
+    /// <param name="firstCommit"></param>
+    /// <param name="secondCommit"></param>
+    /// <param name="message"></param>
     private void squashExec(Repository repo, Commit firstCommit, Commit secondCommit, string message)
     {
         var userSignature = getAuthorFromGlobalConfig(repo);
         var currentBranch = repo.Branches.FirstOrDefault(b => b.IsCurrentRepositoryHead);
-        // if secondCommit is the head
-        // 1. reset to the commit before firstCommit
-        // 2. commit all the changes together
-        // 3. set the new commit as HEAD
-        if (isHeadCommit(repo, secondCommit))
+
+        // get all commits after secondCommit
+        var commitsAfterSecond = getDescendentsOfCommit(secondCommit);
+
+        // if secondCommit is not the head then discard all changes after it
+        if (!isHeadCommit(repo, secondCommit))
         {
-            var previousCommit = firstCommit.Parents.FirstOrDefault();
-            if (previousCommit == null)
-            {
-                squashAllCommitsIncludingRoot(currentBranch, userSignature, message);
-            }
-            else
-            {
-                squashAllCommits(previousCommit, userSignature, message);
-            }
+            repo.Reset(ResetMode.Hard, secondCommit);
         }
-        // if secondCommit is not the head
+
+        // check if firstCommit is the root commit of the branch
+        var previousCommit = firstCommit.Parents.FirstOrDefault();
+        if (previousCommit == null)
+        {
+            squashAllCommitsIncludingRoot(currentBranch, userSignature, message);
+        }
         else
         {
-            var previousCommit = firstCommit.Parents.FirstOrDefault();
-
-            var commitsAfterSecond = repo.Commits.QueryBy(
-                    new CommitFilter
-                    {
-                        IncludeReachableFrom = repo.Head,
-                        ExcludeReachableFrom = secondCommit,
-                        SortBy = CommitSortStrategies.Topological
-                    }
-            ).SkipWhile(commit => commit.Sha == secondCommit.Sha);
-
-            // reset to secondCommit and discard all the changes
-            repo.Reset(ResetMode.Hard, secondCommit);
-
-            if (previousCommit == null)
-            {
-                squashAllCommitsIncludingRoot(currentBranch, userSignature, message);
-            }
-            else
-            {
-                squashAllCommits(previousCommit, userSignature, message);
-            }
-
-            // cherry pick all commits after secondCommit
-            cherryPickListOfCommits(commitsAfterSecond);
+            squashAllCommits(previousCommit, userSignature, message);
         }
+
+        // cherry pick all commits after secondCommit
+        cherryPickListOfCommits(commitsAfterSecond);
     }
 
     /// <summary>
@@ -280,4 +256,21 @@ public class GitCommands
             repo.CherryPick(commit, commit.Author);
         }
     }
+
+    /// <summary>
+    /// Get list of commits between HEAD and given commit
+    /// </summary>
+    /// <param name="commit"></param>
+    /// <returns>List of commits</returns>
+    private IEnumerable<Commit> getDescendentsOfCommit(Commit commit)
+    {
+        return repo.Commits.QueryBy(
+            new CommitFilter
+            {
+                IncludeReachableFrom = repo.Head,
+                ExcludeReachableFrom = commit,
+                SortBy = CommitSortStrategies.Topological
+            }
+        ).SkipWhile(commit => commit.Sha == commit.Sha);
+    } 
 }
