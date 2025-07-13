@@ -271,6 +271,7 @@ public class GitCommands
                 ExcludeReachableFrom = commit,
                 SortBy = CommitSortStrategies.Topological
             }
-        ).SkipWhile(commit => commit.Sha == commit.Sha);
+        ).SkipWhile(c => c.Sha == commit.Sha);
     } 
 }
+
