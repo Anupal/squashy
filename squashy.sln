@@ -5,6 +5,8 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Squashy", "Squashy\Squashy.csproj", "{48DC1B6B-0BAB-4939-845F-9E553A978292}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Squashy.Tests", "Squashy.Tests\Squashy.Tests.csproj", "{BE448C36-0A12-4523-85D8-1EDF55DE8E39}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,5 +20,9 @@ Global
 		{48DC1B6B-0BAB-4939-845F-9E553A978292}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{48DC1B6B-0BAB-4939-845F-9E553A978292}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{48DC1B6B-0BAB-4939-845F-9E553A978292}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BE448C36-0A12-4523-85D8-1EDF55DE8E39}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BE448C36-0A12-4523-85D8-1EDF55DE8E39}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BE448C36-0A12-4523-85D8-1EDF55DE8E39}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BE448C36-0A12-4523-85D8-1EDF55DE8E39}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
