@@ -1,4 +1,5 @@
 using LibGit2Sharp; 
+using NUnit.Framework;
 using System.IO;
 
 namespace Squashy.Tests;
@@ -49,5 +50,19 @@ static class Utility
             Commands.Stage(repo, filePath);
             repo.Commit($"delete file {i}", sig, sig);
         }
+    }
+
+    public static List<string> GetAllCommitHashes(string testRepoPath)
+    {
+        Repository repo = new Repository(testRepoPath);
+        var filter = new CommitFilter { SortBy = CommitSortStrategies.Topological };
+        return repo.Commits.QueryBy(filter).Select(c => c.Id.Sha.Substring(0, 7)).ToList();
+    }
+
+    public static List<string> GetAllCommitMessages(string testRepoPath)
+    {
+        Repository repo = new Repository(testRepoPath);
+        var filter = new CommitFilter { SortBy = CommitSortStrategies.Topological };
+        return repo.Commits.QueryBy(filter).Select(c => c.MessageShort).ToList();
     }
 }
