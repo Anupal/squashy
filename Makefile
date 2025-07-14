@@ -14,3 +14,5 @@ clean:
 	rm -rf ./Squashy/obj
 squash-dry-run:
 	./publish/Squashy -d ./test-repo squash a35c0aa 6eeab88 "this is the squashed commit" -x
+test:
+	dotnet test

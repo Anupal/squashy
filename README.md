@@ -17,3 +17,4 @@ Simple commandline git squasher.
 ### Building
 - Use `make build` to publish the binary into a `./publish` directory
 - Generate a test repo using `make gentest`
+- Use `make test` to run tests
